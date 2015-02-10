@@ -1,2 +1,2 @@
 # ArrayLookup
-some arrays operations in Clipper code
+some array operations in Clipper code
