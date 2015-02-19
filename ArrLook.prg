@@ -56,6 +56,14 @@ P_EDITHLP := .T.
 cScreen := space(4000)
 cScreen := savescreen(00, 00, 23, 79)
 
+@ 00, 00 CLEAR to maxrow(), maxcol()
+
+/*
+@ 10, 00 say "This is a text line to test the command 'scroll(nn,nn, nn,nn, 0)' '(scoll zero line)"
+inkey(0)
+scroll(10,00, 10,79,0)
+  */
+
 // 12-Dec-2014 - test the incremental seek in Tbrowse on an array
 IncrArraySeek()
 
@@ -73,78 +81,12 @@ EXIT Procedure Final()
 
 // use for application cleanup
 
-*RestScreen(00, 00, 23, 79, cScreen)
+RestScreen(00, 00, 23, 79, cScreen)
 
 return
 // *** end EXIT PROCEDURE  *** //
 // *************************** //
 
-
-
-// ********************************************************************************
-Function ProcessApp()
-
-local cChoice,lIntens, lconf
-local cVers
-local getlist
-
-getlist := {}
-
-//
-cVers :="Vers 0.1 -    08/2004"
-
-ol_autoyield(.t.)
-
-PC_SYSTEM :="Mediator Test Utility"
-P_USER :="SYSTEM"
-
-lIntens := SET(_SET_INTENSITY,.f.)
-lconf := SET(_SET_CONFIRM,.t.)
-saLog := {"\logs\apps\","", 0}              // PATH, FName, FHandle
-
-*setkey(K_F1, {|| help1()})               // Help table
-*setkey(K_ALT_F10, {|| MyUDf()})           // Hidden function call
-
-scroll(00,00,MAXROW(),MAXCOL())
-@  01,00 SAY REPLICATE(CHR(196),80)
-@  20,00 SAY REPLICATE(CHR(196),80)
-@  22,00 SAY REPLICATE(CHR(196),80)
-
-@ 00, 00 say cVers
-@ 00, 71 say date()
-
-DO while .T.
-  cChoice :=""
-
-  scroll(10,00, 19,79)
-
-  @ 03,00 SAY padc("Mediator Test Utility",80,"")
-  @ 21,22 SAY"Your Selection : [  ]"
-  @ 23,00 SAY"[ESC=Exit] [F1=HELP]"
-
-  @ 21,40 get cChoice PICT"99"
-  READ
-
-  if lastkey() = K_ESC
-    exit
-  endif
-
-  do case
-    CASE val(cChoice)==1
-      *ldf_flags()
-
-    CASE val(cChoice)=2
-
-    otherwise
-
-  endcase
-ENDDO
-
-SET(_SET_INTENSITY, lIntens)
-
-return(nil)
-/* end ArrLookup */
-/*****************/
 
 Function LoadArray (aArray,  nMode)
 // ************************************************************
@@ -173,9 +115,8 @@ begin sequence
 
 	ENDIF
 
-*ldArray1( @aArray )                        // 1-dim array
-
-ldArray2( @aArray )                         // 2-dim array
+/*
+ldArray1( @aArray )                        // 1-dim array
 
 DO CASE
 CASE nMode == "N"
@@ -186,6 +127,29 @@ CASE nMode == "MC"
 
 CASE nMode == "SC"
 		aArray := ASort (aArray,,, {|x, y| x[2] < y[2] } )
+
+ENDCASE
+        // ASORT(aArray,,, { |x, y| x > y })
+        // Result: { 5, 4, 3, 2, 1 }
+
+  */
+
+ldArray2( @aArray )                         // 2-dim array
+
+DO CASE
+CASE nMode == "N"
+
+
+    * aArrau[n, 1] = Main-category
+    * aArrau[n, 2] = Sub-category
+    * aArrau[n, 3] = Description
+    aArray := ASort (aArray, , , {|x, y| x[3] < y[3] } )
+
+CASE nMode == "MC"
+    aArray := ASort (aArray,,, {|x, y| x[1] < y[1] } )
+
+CASE nMode == "SC"
+    aArray := ASort (aArray,,, {|x, y| x[2] < y[2] } )
 
 ENDCASE
         // ASORT(aArray,,, { |x, y| x > y })
@@ -300,6 +264,8 @@ o:goBottomBlock := { || nRow := LEN( aArray ) }
 
 // Create column blocks and add TBColumn objects to the TBrowse
 // (see ABrowseBlock() below)
+
+/*
 FOR n := 1 TO LEN( aArray[1] )
   oC := TBColumnNew( aHeader[n], ABrowseBlock( aArray, n ))
   oC:Picture := "@"
@@ -308,11 +274,41 @@ FOR n := 1 TO LEN( aArray[1] )
   o:addColumn( oC )
 
 NEXT
+      */
+
+// 1st column
+  oC := TBColumnNew( aHeader[1], ABrowseBlock( aArray, 3 ))
+  oC:Picture := "@"
+  oC:Width   := 40
+  oC:HeadSep := chr(196)
+  oC:ColSep  := chr(194)+chr(179)+chr(194)
+  o:addColumn( oC )
+
+
+// 2nd column (Main-C)
+  oC := TBColumnNew( aHeader[2], ABrowseBlock( aArray, 1 ))
+  oC:Picture := "@"
+  *oC:Width   := 8
+  oC:HeadSep := chr(196)
+  oC:ColSep  := chr(179)
+  o:addColumn( oC )
+
+// 3rd column (Sub-C)
+  oC := TBColumnNew( aHeader[3], ABrowseBlock( aArray, 2 ))
+  oC:Picture := "@"
+  *oC:Width   := 8
+  oC:HeadSep := chr(196)
+  oC:ColSep  := chr(179)
+  o:addColumn( oC )
+
 
 // ***************************
 * o:ColorSpec :=
 * o:ColSep    :=
 o:HeadSep   := chr(196)
+o:HeadSep   := chr(205)+chr(209)+chr(205)
+*o:ColSep    := chr(32)+chr(279)
+o:FootSep   := chr(205)+chr(207)+chr(205)
 o:FootSep   := chr(196)
 o:Cargo     := array(2)                        // array row indicator, start value
 o:Cargo[1]  := o:Rowcount()                    // number of rows visible on screen
@@ -451,9 +447,10 @@ DO WHILE ( nKey <> K_ESC ) .AND. ( nKey <> K_RETURN )
 ENDDO
 
 // Set the return value
-xRet := IF( nKey == K_RETURN, aArray[nRow, o:colPos], NIL )
+xRet := IIF( nKey == K_RETURN, aArray[nRow, 3], NIL )         // disp 3rd column in array (description)
 SetPos(nB+1, nL+1)
-Dispout(trim(aArray[nRow, o:ColPos]))
+*Dispout(trim(aArray[nRow, o:ColPos]))
+Dispout(trim(xRet))
 inkey(0)
 
 // Restore the original cursor setting
@@ -470,7 +467,7 @@ RETURN (xRet)
 Function ArrayLookup( a , cLook)
 nPos := 0
 nLen := len(a)
-nPos := aScan( a, {| a | a[1] = cLook})
+nPos := aScan( a, {| a | a[3] = cLook})
 
 return nPos
 // *** end ArrayLookup *** //
@@ -803,7 +800,7 @@ If LoadArray(@aArray, "N")
 	ABrowse (aArray, nTop, nLeft, nBottom, nRight, aHeader)
 
 else
-	Alert('some error while executing "ABrowse()"')
+  Alert('some error while executing "Func ABrowse()"')
 
 endif
 
@@ -813,5 +810,3 @@ return
 
 
 #INCLUDE "ArrLook.CH"
-
-
